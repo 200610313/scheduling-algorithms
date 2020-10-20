@@ -1,5 +1,5 @@
 const input = require("readline-sync")
-const { solveFirstComeFirstServe } = require("./preemptive")
+const { solveFirstComeFirstServe } = require("./nonpreemptive")
 const {
   getInputs,
   showMainOptions,
