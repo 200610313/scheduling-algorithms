@@ -34,9 +34,23 @@ function wait(ms) {
     end = new Date().getTime()
   }
 }
+const keypress = async () => {
+  process.stdin.setRawMode(true)
+  return new Promise((resolve) =>
+    process.stdin.once("data", () => {
+      process.stdin.setRawMode(false)
+      resolve()
+    })
+  )
+}
+function clone(a) {
+  return JSON.parse(JSON.stringify(a))
+}
 module.exports = {
   showMainOptions,
   showNonPreemptiveOptions,
   getInputs,
-  wait
+  wait,
+  keypress,
+  clone,
 }

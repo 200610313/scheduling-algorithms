@@ -1,9 +1,32 @@
-const { wait } = require("../utils")
+const { wait, clone } = require("../utils")
+// const { printTable } = require("console-table-printer")
+const cTable = require("console.table")
 
 const solveFirstComeFirstServe = (processes, n) => {
   let counter = 0
-  let toProcess = processes
+  let toProcess = clone(processes)
   let requestQueue = []
+  let visual = []
+  let currState = {}
+
+  const getNextState = () => {
+    let lastState = currState[requestQueue[0].processName].split("->")
+    lastState = lastState[lastState.length - 1]
+
+    let nextState = lastState
+
+    if (lastState === "NEW") nextState = "NEW->READY->RUNNING"
+
+    if (lastState === "READY") nextState = "READY->RUNNING"
+
+    if (parseInt(requestQueue[0].clockCycle) - 1 === 0)
+      nextState = `${nextState}->TERMINATED`
+
+    return nextState
+  }
+
+  // Assume that all processes are created beforehand
+  for (const process of processes) currState[process.processName] = "NEW"
 
   let indexToPush = -1
 
@@ -14,29 +37,111 @@ const solveFirstComeFirstServe = (processes, n) => {
 
   const jobArrived = () => {
     let index = toProcess.findIndex((p) => parseInt(p.arrivalTime) === counter)
-    if (index !== -1) indexToPush = index
+    if (index !== -1) {
+      indexToPush = index
+      currState = {
+        ...currState,
+        [toProcess[indexToPush].processName]: "NEW",
+      }
+    }
     return parseInt(index) !== -1
   }
 
   const jobAvailable = () => requestQueue.length
 
+  // Runs job, ret 1 if finished running job
   const runJob = () => {
-    console.log(JSON.stringify(requestQueue[0]))
+    let requestQueueCopy = [...requestQueue]
+
+    let nextProcessStateOfRunning = getNextState()
+
+    // Update visuals
+    visual.push({
+      TIME: counter,
+      CPU: requestQueue[0].processName,
+      QUEUE: JSON.stringify(
+        requestQueueCopy.filter((p, i) => i > 0).map((p) => p.processName)
+      ),
+      ...{
+        ...currState,
+        [requestQueue[0].processName]: nextProcessStateOfRunning,
+      },
+    })
+    currState = {
+      ...currState,
+      [requestQueue[0].processName]: nextProcessStateOfRunning,
+    }
+
     requestQueue[0].clockCycle--
-    if (parseInt(requestQueue[0].clockCycle) === 0) requestQueue.shift()
+
+    let finishedRunningJob = parseInt(requestQueue[0].clockCycle) === 0
+
+    if (finishedRunningJob) {
+      requestQueue.shift()
+      return true
+    }
+    return false
   }
 
+  const cpuWaiting = () =>
+    visual.push({ TIME: counter, CPU: "", QUEUE: "[]", ...currState })
+
+  const getFinishedProcessName = (keys) => {
+    for (const key of keys)
+      if (currState[key].includes("RUNNING->TERMINATED")) return key
+
+    return false
+  }
+
+  // Main Loop
   while (toProcess.length || jobAvailable()) {
-    if (jobArrived()) {
-      pushToRequestQueue()
-    }
+    console.clear()
+    let hasFinishedFirstOnQueue
+    if (jobArrived()) pushToRequestQueue()
+    if (jobAvailable()) hasFinishedFirstOnQueue = runJob()
+    if (
+      !jobArrived() &&
+      !jobAvailable() &&
+      toProcess.length &&
+      !hasFinishedFirstOnQueue
+    )
+      cpuWaiting()
 
-    if (jobAvailable()) {
-      runJob()
-    }
+    console.table(visual)
 
+    const processName = getFinishedProcessName(Object.keys(currState))
+    if (processName)
+      currState = {
+        ...currState,
+        [processName]: "TERMINATED",
+      }
+
+    wait(2000)
     counter++
   }
+  // for (let i = 0; i < processes.length; i++) {
+  //   let toFind = processes[i]
+
+  //   let startTimeFound = false
+  //   let endTimeFound = false
+
+  //   for (let j = 0; j < visual.length; j++) {
+  //     if(startTimeFound && endTimeFound) break
+  //     let startCursor = j
+  //     let endCursor = visual.length - 1 - j
+  //   }
+
+  // }
+
+  let stat = []
+
+  for (const process of processes)
+    stat.push({
+      Process: process.processName,
+      "Average Running Time": process.clockCycle,
+    })
+
+  console.table(stat)
 }
 
 module.exports = {
