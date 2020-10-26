@@ -5,6 +5,7 @@ const showMainOptions = (params) =>
 
 const showNonPreemptiveOptions = (params) =>
   console.log("\n[1] First Come First Serve\n")
+const showPreemptiveOptions = (params) => console.log("\n[1] Round Robin\n")
 
 const getInputs = (processes) => {
   processes = [] // Reset
@@ -46,9 +47,11 @@ const keypress = async () => {
 function clone(a) {
   return JSON.parse(JSON.stringify(a))
 }
+
 module.exports = {
   showMainOptions,
   showNonPreemptiveOptions,
+  showPreemptiveOptions,
   getInputs,
   wait,
   keypress,

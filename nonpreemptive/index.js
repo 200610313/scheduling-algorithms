@@ -41,7 +41,7 @@ const solveFirstComeFirstServe = (processes, n) => {
       indexToPush = index
       currState = {
         ...currState,
-        [toProcess[indexToPush].processName]: "NEW",
+        [toProcess[indexToPush].processName]: "NEW->READY",
       }
     }
     return parseInt(index) !== -1
@@ -92,6 +92,11 @@ const solveFirstComeFirstServe = (processes, n) => {
 
     return false
   }
+  const getReadyProcessName = (keys) => {
+    for (const key of keys)
+      if (currState[key].includes("NEW->READY")) return key
+    return false
+  }
 
   // Main Loop
   while (toProcess.length || jobAvailable()) {
@@ -110,6 +115,7 @@ const solveFirstComeFirstServe = (processes, n) => {
     console.table(visual)
 
     const processName = getFinishedProcessName(Object.keys(currState))
+    const readyProcessName = getReadyProcessName(Object.keys(currState))
     if (processName)
       currState = {
         ...currState,
@@ -130,7 +136,6 @@ const solveFirstComeFirstServe = (processes, n) => {
   //     let startCursor = j
   //     let endCursor = visual.length - 1 - j
   //   }
-
   // }
 
   let stat = []
