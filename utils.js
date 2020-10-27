@@ -48,12 +48,50 @@ function clone(a) {
   return JSON.parse(JSON.stringify(a))
 }
 
+const simplify = (processes, visual) => {
+  let visualCopy = clone(visual)
+  for (let i = 0; i < processes.length; i++) {
+    let name = processes[i]
+    console.log(name)
+    for (let j = 0; j < visual.length; ) {
+      if (j === visual.length - 1) break
+      if (visual[j][name] !== visual[j + 1][name]) {
+        j = j + 1
+      } else {
+        let k
+        for (k = j + 2; k < visual.length; k++) {
+          if (visual[k][name] !== visual[j][name]) {
+            break
+          }
+        }
+
+        let firstDup = j + 1
+        let lastDup = k - 1
+        let lastState = visual[j][name].split("->")
+        lastState = lastState[lastState.length - 1]
+
+        while (firstDup <= lastDup) {
+          visualCopy[firstDup][name] = lastState
+          firstDup++
+        }
+
+        j = k
+      }
+    }
+    // console.log(visual)
+  }
+
+  return visualCopy
+}
+
 module.exports = {
+  simplify,
   showMainOptions,
   showNonPreemptiveOptions,
   showPreemptiveOptions,
   getInputs,
   wait,
   keypress,
+  simplify,
   clone,
 }

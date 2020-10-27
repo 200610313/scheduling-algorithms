@@ -1,4 +1,4 @@
-const { wait, clone } = require("../utils")
+const { wait, clone, simplify } = require("../utils")
 // const { printTable } = require("console-table-printer")
 const cTable = require("console.table")
 
@@ -68,15 +68,27 @@ const solveRoundRobin = (processes, n) => {
       processes.find((p) => p.processName === processName).clockCycle
     ) === length
 
-  const transitionProcessToState = (processName, endState, currLength) => {
-    if (isPristine(processName, parseInt(currLength))) {
-      let nextState = `${currState[processName]}->${endState}`
+  const transitionProcessToState = (processName, endState) => {
+    // if (isPristine(processName, parseInt(currLength))) {
+    //   let nextState = `${currState[processName]}->${endState}`
+    //   currState = { ...currState, [processName]: nextState }
+    //   return nextState
+    // }
+
+    if (
+      currState[processName] === "NEW->READY" &&
+      endState === "RUNNING" &&
+      !visual.find((p) => p[processName] === "NEW")
+      // visual[visual.length - 1][processName].split("->").pop() === "NEW"
+    ) {
+      let nextState = `${currState[processName]}->RUNNING`
       currState = { ...currState, [processName]: nextState }
       return nextState
     }
 
     let previousState = currState[processName].split("->")
     previousState = previousState[previousState.length - 1]
+
     if (endState === "RUNNING") {
       if (previousState === "READY") {
         let nextState = "READY->RUNNING"
@@ -121,6 +133,9 @@ const solveRoundRobin = (processes, n) => {
 
   while (toProcess.length || jobAvailable()) {
     const run = () => {
+      if (counter === 9) {
+        console.log("w")
+      }
       if (jobArrived()) pushToRequestQueue()
 
       if (expiredJob) {
@@ -142,10 +157,8 @@ const solveRoundRobin = (processes, n) => {
               ...currState,
               [requestQueue[0].processName]: transitionProcessToState(
                 requestQueue[0].processName,
-                "RUNNING",
-                requestQueue[0].clockCycle
+                "RUNNING"
               ),
-              // ...simplifyStates(requestQueue[0].processName),
             },
           })
           finishedFirstInQueue = runJob()
@@ -176,8 +189,7 @@ const solveRoundRobin = (processes, n) => {
             ...visual[visual.length - 1],
             [expiredJob.processName]: transitionProcessToState(
               expiredJob.processName,
-              "BLOCKED",
-              expiredJob.clockCycle
+              "BLOCKED"
             ),
           }
 
@@ -193,6 +205,11 @@ const solveRoundRobin = (processes, n) => {
     run()
     counter++
   }
+  // Remove dupes
+  visual = simplify(
+    processes.map(({ processName }) => processName),
+    visual
+  )
   console.table(visual)
 }
 
