@@ -1,4 +1,4 @@
-const { wait, clone } = require("../utils")
+const { wait, clone, simplify } = require("../utils")
 // const { printTable } = require("console-table-printer")
 const cTable = require("console.table")
 
@@ -8,22 +8,6 @@ const solveFirstComeFirstServe = (processes, n) => {
   let requestQueue = []
   let visual = []
   let currState = {}
-
-  const getNextState = () => {
-    let lastState = currState[requestQueue[0].processName].split("->")
-    lastState = lastState[lastState.length - 1]
-
-    let nextState = lastState
-
-    if (lastState === "NEW") nextState = "NEW->READY->RUNNING"
-
-    if (lastState === "READY") nextState = "READY->RUNNING"
-
-    if (parseInt(requestQueue[0].clockCycle) - 1 === 0)
-      nextState = `${nextState}->TERMINATED`
-
-    return nextState
-  }
 
   // Assume that all processes are created beforehand
   for (const process of processes) currState[process.processName] = "NEW"
@@ -38,115 +22,195 @@ const solveFirstComeFirstServe = (processes, n) => {
   const jobArrived = () => {
     let index = toProcess.findIndex((p) => parseInt(p.arrivalTime) === counter)
     if (index !== -1) {
-      indexToPush = index
-      currState = {
-        ...currState,
-        [toProcess[indexToPush].processName]: "NEW->READY",
+      if (toProcess[index].processName === "P2") {
+        console.log("object")
       }
+      indexToPush = index
+      transitionProcessToState(
+        toProcess[indexToPush].processName,
+        "READY",
+        toProcess[indexToPush].clockCycle
+      )
     }
     return parseInt(index) !== -1
   }
 
   const jobAvailable = () => requestQueue.length
 
-  // Runs job, ret 1 if finished running job
+  // Runs job, ret the name of the process if finished running job
   const runJob = () => {
-    let requestQueueCopy = [...requestQueue]
-
-    let nextProcessStateOfRunning = getNextState()
-
-    // Update visuals
-    visual.push({
-      TIME: counter,
-      CPU: requestQueue[0].processName,
-      QUEUE: JSON.stringify(
-        requestQueueCopy.filter((p, i) => i > 0).map((p) => p.processName)
-      ),
-      ...{
-        ...currState,
-        [requestQueue[0].processName]: nextProcessStateOfRunning,
-      },
-    })
-    currState = {
-      ...currState,
-      [requestQueue[0].processName]: nextProcessStateOfRunning,
-    }
-
     requestQueue[0].clockCycle--
-
     let finishedRunningJob = parseInt(requestQueue[0].clockCycle) === 0
-
     if (finishedRunningJob) {
+      let processNameOfFinished = requestQueue[0].processName
       requestQueue.shift()
-      return true
+      return processNameOfFinished
     }
     return false
   }
+
+  let QUANTUM = -1
+  let jobCounter = 0
+  jobCounter = 0
+  let expiredJob
+  let finishedFirstInQueue
 
   const cpuWaiting = () =>
-    visual.push({ TIME: counter, CPU: "", QUEUE: "[]", ...currState })
-
-  const getFinishedProcessName = (keys) => {
-    for (const key of keys)
-      if (currState[key].includes("RUNNING->TERMINATED")) return key
-
-    return false
-  }
-  const getReadyProcessName = (keys) => {
-    for (const key of keys)
-      if (currState[key].includes("NEW->READY")) return key
-    return false
-  }
-
-  // Main Loop
-  while (toProcess.length || jobAvailable()) {
-    console.clear()
-    let hasFinishedFirstOnQueue
-    if (jobArrived()) pushToRequestQueue()
-    if (jobAvailable()) hasFinishedFirstOnQueue = runJob()
-    if (
-      !jobArrived() &&
-      !jobAvailable() &&
-      toProcess.length &&
-      !hasFinishedFirstOnQueue
-    )
-      cpuWaiting()
-
-    console.table(visual)
-
-    const processName = getFinishedProcessName(Object.keys(currState))
-    const readyProcessName = getReadyProcessName(Object.keys(currState))
-    if (processName)
-      currState = {
-        ...currState,
-        [processName]: "TERMINATED",
-      }
-
-    wait(2000)
-    counter++
-  }
-  // for (let i = 0; i < processes.length; i++) {
-  //   let toFind = processes[i]
-
-  //   let startTimeFound = false
-  //   let endTimeFound = false
-
-  //   for (let j = 0; j < visual.length; j++) {
-  //     if(startTimeFound && endTimeFound) break
-  //     let startCursor = j
-  //     let endCursor = visual.length - 1 - j
-  //   }
-  // }
-
-  let stat = []
-
-  for (const process of processes)
-    stat.push({
-      Process: process.processName,
-      "Average Running Time": process.clockCycle,
+    visual.push({
+      TIME: counter,
+      CPU: "",
+      QUEUE: "[]",
+      ...currState,
     })
 
-  console.table(stat)
+  const isPristine = (processName, length) =>
+    parseInt(
+      processes.find((p) => p.processName === processName).clockCycle
+    ) === length
+
+  const transitionProcessToState = (processName, endState) => {
+    // if (isPristine(processName, parseInt(currLength))) {
+    //   let nextState = `${currState[processName]}->${endState}`
+    //   currState = { ...currState, [processName]: nextState }
+    //   return nextState
+    // }
+
+    if (
+      currState[processName] === "NEW->READY" &&
+      endState === "RUNNING" &&
+      !visual.find((p) => p[processName] === "NEW")
+      // visual[visual.length - 1][processName].split("->").pop() === "NEW"
+    ) {
+      let nextState = `${currState[processName]}->RUNNING`
+      currState = { ...currState, [processName]: nextState }
+      return nextState
+    }
+
+    let previousState = currState[processName].split("->")
+    previousState = previousState[previousState.length - 1]
+
+    if (endState === "RUNNING") {
+      if (previousState === "READY") {
+        let nextState = "READY->RUNNING"
+        currState = { ...currState, [processName]: nextState }
+        return nextState
+      }
+
+      if (previousState === "NEW") {
+        let nextState = "NEW->READY->RUNNING"
+        currState = { ...currState, [processName]: nextState }
+        return nextState
+      }
+
+      if (previousState === "BLOCKED") {
+        let nextState = "BLOCKED->READY->RUNNING"
+        currState = { ...currState, [processName]: nextState }
+        return nextState
+      }
+
+      if (previousState === "RUNNING") {
+        let nextState = "RUNNING"
+        currState = { ...currState, [processName]: nextState }
+        return nextState
+      }
+    }
+    if (endState === "BLOCKED") {
+      let nextState = `${previousState}->BLOCKED`
+      currState = { ...currState, [processName]: nextState }
+      return nextState
+    }
+    if (endState === "TERMINATED") {
+      let nextState = `${currState[processName]}->TERMINATED`
+      currState = { ...currState, [processName]: nextState }
+      return nextState
+    }
+    if (endState === "READY") {
+      let nextState = `NEW->READY`
+      currState = { ...currState, [processName]: nextState }
+      return nextState
+    }
+  }
+
+  while (toProcess.length || jobAvailable()) {
+    const run = () => {
+      if (counter === 9) {
+        console.log("w")
+      }
+      if (jobArrived()) pushToRequestQueue()
+
+      if (expiredJob) {
+        requestQueue.push(expiredJob)
+        expiredJob = undefined
+      }
+
+      if (jobAvailable()) {
+        if (!(QUANTUM === jobCounter)) {
+          let requestQueueCopy = [...requestQueue]
+          console.log(requestQueue[0].processName, " ran at " + counter)
+          visual.push({
+            TIME: counter,
+            CPU: requestQueue[0].processName,
+            QUEUE: JSON.stringify(
+              requestQueueCopy.filter((p, i) => i > 0).map((p) => p.processName)
+            ),
+            ...{
+              ...currState,
+              [requestQueue[0].processName]: transitionProcessToState(
+                requestQueue[0].processName,
+                "RUNNING"
+              ),
+            },
+          })
+          finishedFirstInQueue = runJob()
+
+          if (finishedFirstInQueue) {
+            console.log(finishedFirstInQueue + " terminated at " + counter)
+
+            visual[visual.length - 1] = {
+              ...visual[visual.length - 1],
+              [finishedFirstInQueue]: transitionProcessToState(
+                finishedFirstInQueue,
+                "TERMINATED",
+                0
+              ),
+            }
+
+            jobCounter = 0
+          } else {
+            jobCounter++
+          }
+        } else {
+          // Job blocked before time ( counter ) started
+          console.log(requestQueue[0].processName + " Expired at " + counter)
+
+          expiredJob = requestQueue[0]
+
+          visual[visual.length - 1] = {
+            ...visual[visual.length - 1],
+            [expiredJob.processName]: transitionProcessToState(
+              expiredJob.processName,
+              "BLOCKED"
+            ),
+          }
+
+          requestQueue.shift()
+
+          jobCounter = 0
+
+          // Run
+          run()
+        }
+      } else cpuWaiting()
+    }
+    run()
+    counter++
+  }
+  // Remove dupes
+  visual = simplify(
+    processes.map(({ processName }) => processName),
+    visual
+  )
+  console.table(visual)
 }
 
 module.exports = {

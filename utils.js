@@ -78,7 +78,6 @@ const simplify = (processes, visual) => {
         j = k
       }
     }
-    // console.log(visual)
   }
 
   return visualCopy
