@@ -22,6 +22,7 @@ while (!exit) {
     showMainOptions()
     currOption = input.question("Option: ")
     if (parseInt(currOption) === 1) {
+      processes = getInputs(processes)
     } else if (parseInt(currOption) === 2) {
       // Non Preemptive
       showNonPreemptiveOptions()
@@ -33,7 +34,6 @@ while (!exit) {
       showPreemptiveOptions()
       currOption = input.question("Option: ")
       if (parseInt(currOption) === 1) solveRoundRobin(processes, inputLength)
-      currOption = input.question("Option: ")
     } else {
       currOption = input.question("Option: ")
     }

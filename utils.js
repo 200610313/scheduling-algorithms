@@ -52,7 +52,6 @@ const simplify = (processes, visual) => {
   let visualCopy = clone(visual)
   for (let i = 0; i < processes.length; i++) {
     let name = processes[i]
-    console.log(name)
     for (let j = 0; j < visual.length; ) {
       if (j === visual.length - 1) break
       if (visual[j][name] !== visual[j + 1][name]) {
@@ -80,6 +79,28 @@ const simplify = (processes, visual) => {
     }
   }
 
+  return correct(processes,visualCopy)
+}
+const correct = (processes, visual) => {
+  let visualCopy = clone(visual)
+
+  for (let i = 0; i < processes.length; i++) {
+    let name = processes[i]
+
+    for (let j = 0; j < visual.length - 1; j++) {
+      let prevPLastState = visual[j][name].split("->")
+      prevPLastState = prevPLastState[prevPLastState.length - 1]
+      let nextPStartState = visual[j + 1][name].split("->")
+      nextPStartState = nextPStartState[0]
+
+      if (prevPLastState !== nextPStartState) {
+        console.log(prevPLastState)
+        console.log(nextPStartState)
+        visualCopy[j + 1][name] = `${prevPLastState}->${visual[j + 1][name]}`
+      }
+    }
+  }
+
   return visualCopy
 }
 
@@ -93,4 +114,5 @@ module.exports = {
   keypress,
   simplify,
   clone,
+  correct,
 }
