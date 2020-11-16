@@ -1,8 +1,9 @@
-const { wait, clone, simplify, correct } = require("../utils")
+const { wait, getStats, clone, simplify, correct } = require("../utils")
 // const { printTable } = require("console-table-printer")
 const cTable = require("console.table")
+const input = require("readline-sync")
 
-const solveRoundRobin = (processes, n) => {
+const solveRoundRobin = (processes, n, q) => {
   let counter = 0
   let toProcess = clone(processes)
   let requestQueue = []
@@ -49,7 +50,12 @@ const solveRoundRobin = (processes, n) => {
     return false
   }
 
-  let QUANTUM = 2
+  if (!q) q = input.question("Enter Quantum: ")
+
+  let QUANTUM = parseInt(q)
+
+  console.log("Quantum is set to ", q)
+
   let jobCounter = 0
   jobCounter = 0
   let expiredJob
@@ -69,12 +75,6 @@ const solveRoundRobin = (processes, n) => {
     ) === length
 
   const transitionProcessToState = (processName, endState) => {
-    // if (isPristine(processName, parseInt(currLength))) {
-    //   let nextState = `${currState[processName]}->${endState}`
-    //   currState = { ...currState, [processName]: nextState }
-    //   return nextState
-    // }
-
     if (
       currState[processName] === "NEW->READY" &&
       endState === "RUNNING" &&
@@ -211,6 +211,20 @@ const solveRoundRobin = (processes, n) => {
     visual
   )
   console.table(visual)
+  // Show TAT
+  let stats = getStats(
+    processes.map(({ processName }) => processName),
+    visual
+  )
+  console.table(stats)
+
+  console.log(
+    "AVE TAT = ",
+    parseFloat(
+      stats.reduce((a, b) => a + parseInt(b.TAT), 0) / parseFloat(stats.length)
+    )
+  )
+  console.log("")
 }
 
 module.exports = {

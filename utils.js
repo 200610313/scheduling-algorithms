@@ -79,7 +79,7 @@ const simplify = (processes, visual) => {
     }
   }
 
-  return correct(processes,visualCopy)
+  return correct(processes, visualCopy)
 }
 const correct = (processes, visual) => {
   let visualCopy = clone(visual)
@@ -100,8 +100,33 @@ const correct = (processes, visual) => {
       }
     }
   }
-
   return visualCopy
+}
+const getStats = (processes, visual) => {
+  let data = []
+  for (const processName of processes) {
+    let completedAt = false
+    let firstAppearedAt = false
+    let i = 0
+    for (const v of visual) {
+      if (v[processName].includes("READY") && firstAppearedAt === false) {
+        firstAppearedAt = i
+      }
+
+      if (v[processName].includes("TERMINATED") && completedAt === false) {
+        completedAt = i
+      }
+
+      if (completedAt !== false && firstAppearedAt !== false) break
+
+      i++
+    }
+    data.push({
+      Process: processName,
+      TAT: parseInt(completedAt) - parseInt(firstAppearedAt) + 1,
+    })
+  }
+  return data
 }
 
 module.exports = {
@@ -115,4 +140,5 @@ module.exports = {
   simplify,
   clone,
   correct,
+  getStats,
 }
